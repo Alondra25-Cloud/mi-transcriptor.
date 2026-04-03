@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transcriptor de Clases Gratis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0';
+
+        let transcriber;
+        const status = document.getElementById('status');
+        const output = document.getElementById('output');
+        const fileInput = document.getElementById('file-input');
+
+        async function init() {
+            status.innerText = "Cargando motor de IA (solo la primera vez)...";
+            try {
+                transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny');
+                status.innerText = "✅ Listo. Sube tu audio o video (m4a, mp4, mp3).";
+            } catch (e) {
+                status.innerText = "Error al cargar la IA. Revisa tu conexión.";
+            }
+        }
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            status.innerText = "Transcribiendo... No cierres la pestaña (esto usa la potencia de tu móvil).";
+            output.innerText = "Procesando...";
+            
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+                const arrayBuffer = await file.arrayBuffer();
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                
+                const result = await transcriber(audioBuffer.getChannelData(0));
+                output.innerText = result.text;
+                status.innerText = "¡Transcripción terminada!";
+            } catch (err) {
+                status.innerText = "Error al procesar el archivo. Intenta con uno más corto.";
+                output.innerText = "Error: " + err.message;
+            }
+        });
+
+        init();
+    </script>
+</head>
+<body class="bg-gray-900 text-white p-5 font-sans min-h-screen">
+    <div class="max-w-md mx-auto space-y-6">
+        <header class="text-center">
+            <h1 class="text-3xl font-bold text-violet-400">TranscribeYa</h1>
+            <p class="text-xs text-gray-400">Gratis • Sin Límites • Privado</p>
+        </header>
+        
+        <div class="bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-700">
+            <p id="status" class="text-sm text-yellow-400 mb-4 text-center italic">Iniciando...</p>
+            
+            <label class="block mb-4 text-sm font-medium text-gray-300">Selecciona tu clase (Audio o Video):</label>
+            <input type="file" id="file-input" accept="audio/*,video/*" 
+                   class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-600 file:text-white hover:file:bg-violet-700 cursor-pointer">
+        </div>
+
+        <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700">
+            <h2 class="text-lg font-semibold mb-3 text-violet-300">Texto Extraído:</h2>
+            <div id="output" class="text-gray-200 text-sm h-80 overflow-y-auto border border-gray-700 p-4 rounded-xl bg-gray-900 leading-relaxed shadow-inner">
+                Aquí aparecerá lo que digan en tu clase...
+            </div>
+            <button onclick="navigator.clipboard.writeText(document.getElementById('output').innerText)" 
+                    class="mt-4 w-full py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs font-bold transition-colors">
+                COPIAR TEXTO
+            </button>
+        </div>
+    </div>
+</body>
+</html>
